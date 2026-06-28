@@ -1,4 +1,4 @@
-#-- MySudoku --
+# -- MySudoku --
 
 This is a sudoku-like game created using C++ and the SFML-2.5.1 graphic libraries.
 
