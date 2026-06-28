@@ -1,4 +1,4 @@
-# -- MySudoku --
+# MySudoku
 
 This is a sudoku-like game created using C++ and the SFML-2.5.1 graphic libraries.
 
@@ -8,4 +8,4 @@ https://www.sfml-dev.org/download/sfml/2.5.1/
 
 I will also include the .dll files that can also work by being placed in the debug/release folders as well!
 
--- Tyson Koopman-Baker--
+-- Tyson Koopman-Baker
