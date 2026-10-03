@@ -52,6 +52,9 @@ public:
 	*/
 	void deleteMemory(int numberGridOut[BOARD_SIZE][BOARD_SIZE], char colorGridOut[BOARD_SIZE][BOARD_SIZE], char noteColorOut[BOARD_SIZE][BOARD_SIZE][BOARD_SIZE]);
 
+	// Make revealed hints fixed in every snapshot, including ones made before the hint.
+	void preserveHints(const int numbers[BOARD_SIZE][BOARD_SIZE], const char colors[BOARD_SIZE][BOARD_SIZE]);
+
 	/*
 	*	Tests if there have been any changes made to the current board state
 	*

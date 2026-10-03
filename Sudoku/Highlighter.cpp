@@ -9,7 +9,7 @@
 
 // Include files
 #include "Highlighter.h"
-#include "constants.h"
+#include "Constants.h"
 
 // Default Highlighter constructor
 Highlighter::Highlighter()

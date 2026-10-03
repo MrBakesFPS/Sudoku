@@ -18,7 +18,7 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Font.hpp>
 #include <string>
-#include <SFML/System/Clock.hpp>
+#include "PlayTimer.h"
 #include <SFML/Graphics/Image.hpp>
 
 // Enumerator for the current state of the game
@@ -112,7 +112,7 @@ private:
 	int hintCount; // For the number of hints to be provided
 	bool isNotepadOpen; // To indicate if the notepad is open or not
 	bool isPauseScreenOpen; // To indicate if the pause screen is open or not
-	sf::Clock gameClock; // For the current running game time
+	PlayTimer gameClock; // Active play time, excluding pauses
 	std::string finalTime; // To display the length of time spent on the board
 
 	/*
@@ -173,5 +173,8 @@ private:
 	*	Draws the pause screen overlay
 	*/
 	void drawPauseScreen();
+
+	// Keep the logical 1000x1000 layout visible at every window size.
+	void updateWindowView(unsigned width, unsigned height);
 };
 #endif

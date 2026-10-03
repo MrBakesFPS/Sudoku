@@ -150,10 +150,10 @@
     <ClCompile Include="Sudoku.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="resource.rc" />
+    <ResourceCompile Include="resource.rc" Condition="Exists('$(ProjectDir)icon.ico')" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\Icon Images\icon.ico" />
+    <Image Include="icon.ico" Condition="Exists('$(ProjectDir)icon.ico')" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

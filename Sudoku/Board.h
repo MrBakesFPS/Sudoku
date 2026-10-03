@@ -64,9 +64,9 @@ public:
 	bool createSolvedBoard(int solvedGrid[BOARD_SIZE][BOARD_SIZE]);
 
 	/*
-	*	Provides a hint to the current board
+	*	Provides a fixed hint to the current board; returns true when a cell was revealed
 	*/
-	void hint();
+	bool hint();
 
 	/*
 	*	Sets the numberGrid to a new grid from the given parameters
@@ -181,6 +181,7 @@ public:
 
 private:
 	int numberGrid[BOARD_SIZE][BOARD_SIZE]; // For the numbers on the sudoku board
+	int hintedValues[BOARD_SIZE][BOARD_SIZE]{}; // Permanent clues for this puzzle, outside undo history
 	int solvedBoard[BOARD_SIZE][BOARD_SIZE]; // For the numbers on the sudoku board
 	char colorGrid[BOARD_SIZE][BOARD_SIZE]; // For the color codes of the numbers on the sudoku board
 };
