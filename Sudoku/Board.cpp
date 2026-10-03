@@ -90,6 +90,11 @@ bool Board::initializeNewBoard()
 // ChatGPT V1 createSolidPieces function
 void Board::createSolidPieces(Difficulty difficulty)
 {
+	// A new puzzle gets a fresh hint allowance and no clues from the previous puzzle.
+	for (auto& row : hintedValues)
+		for (int& value : row)
+			value = 0;
+
 	int maxEmptySpaces = 0;
 	if (difficulty == BEGINNER) maxEmptySpaces = 24;
 	else if (difficulty == EASY) maxEmptySpaces = 32;
@@ -269,7 +274,7 @@ bool Board::createSolvedBoard(int solvedGrid[BOARD_SIZE][BOARD_SIZE])
 }
 
 // hint function
-void Board::hint()
+bool Board::hint()
 {
 	// Gather all empty cell coordinates
 	std::vector<std::pair<int, int>> emptyCells;
@@ -280,13 +285,15 @@ void Board::hint()
 
 	// Nothing to reveal
 	if (emptyCells.empty())
-		return;
+		return false;
 
 	std::uniform_int_distribution<> distrib(0, static_cast<int>(emptyCells.size()) - 1);
 	auto [row, col] = emptyCells[distrib(rng)];
 
-	numberGrid[row][col] = solvedBoard[row][col];
+	hintedValues[row][col] = solvedBoard[row][col];
+	numberGrid[row][col] = hintedValues[row][col];
 	colorGrid[row][col] = 'p'; // Mark as a given clue, not a player entry
+	return true;
 }
 
 // setNumberGrid function
@@ -296,7 +303,7 @@ void Board::setNumberGrid(int gridIn[BOARD_SIZE][BOARD_SIZE])
 	{
 		for (int j = 0; j < BOARD_SIZE; j++)
 		{
-			numberGrid[i][j] = gridIn[i][j];
+			numberGrid[i][j] = hintedValues[i][j] != 0 ? hintedValues[i][j] : gridIn[i][j];
 		}
 	}
 }
@@ -308,7 +315,7 @@ void Board::setColorGrid(char gridIn[BOARD_SIZE][BOARD_SIZE])
 	{
 		for (int j = 0; j < BOARD_SIZE; j++)
 		{
-			colorGrid[i][j] = gridIn[i][j];
+			colorGrid[i][j] = hintedValues[i][j] != 0 ? 'p' : gridIn[i][j];
 		}
 	}
 }

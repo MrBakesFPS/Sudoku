@@ -74,6 +74,24 @@ void GameMemory::deleteMemory(int numberGridOut[BOARD_SIZE][BOARD_SIZE], char co
 	}
 }
 
+// Hints are permanent clues, not undoable moves. Keep history consistent with the
+// board's persistent hint overlay and discard notes hidden underneath new clues.
+void GameMemory::preserveHints(const int numbers[BOARD_SIZE][BOARD_SIZE], const char colors[BOARD_SIZE][BOARD_SIZE])
+{
+	for (Node* memory = head; memory != nullptr; memory = memory->next) {
+		for (int row = 0; row < BOARD_SIZE; ++row) {
+			for (int col = 0; col < BOARD_SIZE; ++col) {
+				if (colors[row][col] != 'p')
+					continue;
+				memory->numberGridMem[row][col] = numbers[row][col];
+				memory->colorGridMem[row][col] = 'p';
+				for (int note = 0; note < BOARD_SIZE; ++note)
+					memory->noteColorMem[row][col][note] = 'b';
+			}
+		}
+	}
+}
+
 // testIfChangesMade function
 bool GameMemory::testIfChangesMade(int numberGridIn[BOARD_SIZE][BOARD_SIZE], char colorGridIn[BOARD_SIZE][BOARD_SIZE], char noteColorIn[BOARD_SIZE][BOARD_SIZE][BOARD_SIZE])
 {
@@ -81,12 +99,14 @@ bool GameMemory::testIfChangesMade(int numberGridIn[BOARD_SIZE][BOARD_SIZE], cha
 		return false;
 	for (int i = 0; i < BOARD_SIZE; i++) {
 		for (int j = 0; j < BOARD_SIZE; j++) {
-			if (colorGridIn[i][j] != head->colorGridMem[i][j])
+			// Conflict colors are derived from the board. Recoloring after undo
+			// (especially across a hint) must not create a new undo snapshot.
+			if ((colorGridIn[i][j] == 'p') != (head->colorGridMem[i][j] == 'p'))
 				return true;
 			if (numberGridIn[i][j] != head->numberGridMem[i][j])
 				return true;
 			for (int k = 0; k < BOARD_SIZE; k++) {
-				if (noteColorIn[i][j][k] != head->noteColorMem[i][j][k])
+				if ((noteColorIn[i][j][k] == 'b') != (head->noteColorMem[i][j][k] == 'b'))
 					return true;
 			}
 		}

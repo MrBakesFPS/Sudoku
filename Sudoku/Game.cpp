@@ -14,6 +14,9 @@
 #include "Notepad.h"
 #include "GameMemory.h"
 #include "Constants.h"
+#include "WindowLayout.h"
+#include <fstream>
+#include <SFML/Graphics/View.hpp>
 #include <string>
 #include <iostream>
 #include <SFML/Window/VideoMode.hpp>
@@ -28,14 +31,19 @@
 // Default Game constructor
 Game::Game()
 {
-	// The creation of the game window
+	// Fit smaller displays at startup; all drawing keeps its original logical coordinates.
+	const auto desktop = sf::VideoMode::getDesktopMode();
+	const auto size = WindowLayout::initialSize(desktop.width, desktop.height);
 	gameWindow.create(
-		sf::VideoMode(LAYOUT_WINDOW_WIDTH, LAYOUT_WINDOW_HEIGHT),
+		sf::VideoMode(size.width, size.height),
 		"Sudoku",
-		sf::Style::Titlebar | sf::Style::Close
+		sf::Style::Titlebar | sf::Style::Close | sf::Style::Resize
 	);
 
-	if (icon.loadFromFile("icon.png"))
+	updateWindowView(size.width, size.height);
+
+	// The repository does not require an icon asset.
+	if (std::ifstream("icon.png").good() && icon.loadFromFile("icon.png"))
 		gameWindow.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
 
 	// For the loading of the font from file
@@ -66,6 +74,18 @@ Game::Game()
 	gameClock.restart();
 
 	finalTime = "";
+}
+
+// Preserve proportions and letterbox wide/tall windows instead of clipping.
+void Game::updateWindowView(unsigned width, unsigned height)
+{
+	if (width == 0 || height == 0)
+		return; // Minimized windows can report zero dimensions.
+	sf::View view(sf::FloatRect(0.f, 0.f,
+		static_cast<float>(LAYOUT_WINDOW_WIDTH), static_cast<float>(LAYOUT_WINDOW_HEIGHT)));
+	const auto viewport = WindowLayout::viewport(width, height);
+	view.setViewport(sf::FloatRect(viewport.left, viewport.top, viewport.width, viewport.height));
+	gameWindow.setView(view);
 }
 
 // Default game destructor
@@ -121,6 +141,10 @@ void Game::handleTitleEvents()
 	sf::Event event;
 	while (gameWindow.pollEvent(event) && currentGameState == TITLE_SCREEN)
 	{
+		// Resizing applies on title, game, pause, and game-over screens.
+		if (event.type == sf::Event::Resized)
+			updateWindowView(event.size.width, event.size.height);
+
 		// For the closing of the game screen
 		if (event.type == sf::Event::Closed)
 			currentGameState = EXIT_SCREEN;
@@ -163,8 +187,9 @@ void Game::processGameScreen()
 	if (gameMemory == nullptr)
 		gameMemory = new GameMemory;
 
-	// Sets the notepad to closed on game start
+	// Reset overlays on game start, including when the previous game exited while paused.
 	isNotepadOpen = false;
+	isPauseScreenOpen = false;
 
 	// Generate new board
 	gameBoard->createSolidPieces(currentDifficulty);
@@ -207,8 +232,10 @@ void Game::processGameScreen()
 			
 
 			// Tests if the board is completed, and if so, transition to the game over screen
-			if (testIfBoardComplete())
+			if (testIfBoardComplete()) {
+				gameClock.pause();
 				currentGameState = OVER_SCREEN;
+			}
 
 			// Drawing the new frame
 			gameWindow.clear();
@@ -238,13 +265,23 @@ void Game::handleGameEvents()
 	while (gameWindow.pollEvent(event) && currentGameState == GAME_SCREEN)
 	{
 		
+		// Resizing applies on title, game, pause, and game-over screens.
+		if (event.type == sf::Event::Resized)
+			updateWindowView(event.size.width, event.size.height);
+
 		// For the closing of the game screen
 		if (event.type == sf::Event::Closed)
 			currentGameState = EXIT_SCREEN;
 		
 		// For the pause screen
 		if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape)
+		{
 			isPauseScreenOpen = !isPauseScreenOpen;
+			if (isPauseScreenOpen)
+				gameClock.pause();
+			else
+				gameClock.resume();
+		}
 
 		if (isPauseScreenOpen == false)
 		{
@@ -283,8 +320,18 @@ void Game::handleGameEvents()
 			// For the providing of a hint
 			if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::H && hintCount > 0)
 			{
-				gameBoard->hint();
-				hintCount--;
+				if (gameBoard->hint()) {
+					--hintCount; // This budget is deliberately outside undo history.
+					int numbers[BOARD_SIZE][BOARD_SIZE];
+					char colors[BOARD_SIZE][BOARD_SIZE];
+					gameBoard->getNumberGrid(numbers);
+					gameBoard->getColorGrid(colors);
+					gameMemory->preserveHints(numbers, colors);
+					for (int row = 0; row < BOARD_SIZE; ++row)
+						for (int col = 0; col < BOARD_SIZE; ++col)
+							if (colors[row][col] == 'p')
+								notepad->resetCurrentPositionColorCodes(row, col);
+				}
 			}
 
 			// For the undoing of the last move
@@ -328,6 +375,7 @@ void Game::handleGameEvents()
 			notepad = nullptr;
 			delete gameMemory;
 			gameMemory = nullptr;
+			isPauseScreenOpen = false;
 			currentGameState = TITLE_SCREEN;
 		}
 	}
@@ -363,6 +411,10 @@ void Game::handleOverEvents()
 	sf::Event event;
 	while (gameWindow.pollEvent(event) && currentGameState == OVER_SCREEN)
 	{
+
+		// Resizing applies on title, game, pause, and game-over screens.
+		if (event.type == sf::Event::Resized)
+			updateWindowView(event.size.width, event.size.height);
 
 		// For the closing of the game screen
 		if (event.type == sf::Event::Closed)
@@ -478,8 +530,9 @@ std::string Game::getPlayTime()
 	std::string secondString;
 	std::string minuteString;
 
-	int second = static_cast<int>(gameClock.getElapsedTime().asSeconds()) % 60;
-	int minute = static_cast<int>(gameClock.getElapsedTime().asSeconds()) / 60;
+	const auto elapsedSeconds = gameClock.elapsed().count();
+	const auto second = elapsedSeconds % 60;
+	const auto minute = elapsedSeconds / 60;
 
 	if (second < 10)
 		secondString = "0" + std::to_string(second);
